@@ -57,8 +57,15 @@ export default function Home() {
     });
   };
 
-  const AddTask = () => {
+  const AddTask = async () => {
     if (task.name.length > 0) {
+      const res = await fetch("http://localhost:3000/api/tasks", {
+        body: JSON.stringify({
+          description: task.name,
+        }),
+        method: "POST",
+      });
+      console.log(await res.json(), "res.json()");
       setTasks([...tasks, task]);
       setTask({ name: "", category: "TODO", id: Date.now().toString() });
     }
