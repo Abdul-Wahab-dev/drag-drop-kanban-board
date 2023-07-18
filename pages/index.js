@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-
+const URL = process.env.NEXT_PUBLIC_API;
 export default function Home() {
   const [tasks, setTasks] = useState([]);
   const [updateTask, setUpdateTask] = useState({
@@ -24,12 +24,10 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllTasks() {
       const res = await (
-        await fetch("http://localhost:3000/api/tasks", {
+        await fetch(URL, {
           method: "GET",
         })
       ).json();
-
-      console.log(res.tasks);
       setTasks([...res.tasks]);
     }
     fetchAllTasks();
@@ -41,22 +39,40 @@ export default function Home() {
   const onDragOver = (e) => {
     e.preventDefault();
   };
-  const onDrop = (e, cate) => {
+  const onDrop = async (e, cate) => {
     let id = e.dataTransfer.getData("id");
-
-    let tasked = tasks.map((ite) => {
-      if (ite.id === id) {
+    const prevTask = { ...tasks.find((ite) => ite.id == id) };
+    const tasked = tasks.map((ite) => {
+      if (ite.id == id) {
         ite.status = cate;
       }
       return ite;
     });
 
     setTasks([...tasked]);
+    try {
+      const updatedTask = await (
+        await fetch(`${URL}?id=${prevTask.id}`, {
+          body: JSON.stringify({
+            description: prevTask.description,
+            status: cate,
+          }),
+          method: "PATCH",
+        })
+      ).json();
+    } catch (err) {
+      if (err) {
+        const tasked = tasks.map((ite) =>
+          ite.id == prevTask.id ? prevTask : ite
+        );
+        setTasks([...tasked]);
+      }
+    }
   };
 
   const deleteTask = async (id) => {
     const res = await (
-      await fetch(`http://localhost:3000/api/tasks/${id}`, {
+      await fetch(`${URL}?id=${id}`, {
         method: "DELETE",
       })
     ).json();
@@ -64,20 +80,29 @@ export default function Home() {
       setTasks([...tasks.filter((ite) => ite.id !== id)]);
     }
   };
-  const updateTaskFunc = () => {
-    setTasks([
-      ...tasks.map((ite) => (ite.id === updateTask.id ? updateTask : ite)),
-    ]);
-    setUpdateTask({
-      description: "",
-      status: "",
-    });
+  const updateTaskFunc = async () => {
+    const { task } = await (
+      await fetch(`${URL}?id=${updateTask.id}`, {
+        body: JSON.stringify({
+          description: updateTask.description,
+          status: updateTask.status,
+        }),
+        method: "PATCH",
+      })
+    ).json();
+    if (task) {
+      setTasks([...tasks.map((ite) => (ite.id === task.id ? task : ite))]);
+      setUpdateTask({
+        description: "",
+        status: "",
+      });
+    }
   };
 
   const AddTask = async () => {
     if (task.description.length > 0) {
       const res = await (
-        await fetch("http://localhost:3000/api/tasks", {
+        await fetch(URL, {
           body: JSON.stringify({
             description: task.description,
           }),
@@ -94,7 +119,6 @@ export default function Home() {
       ...updateTask,
       description: e.target.value,
     });
-    // const updated = tasks
   };
 
   return (

@@ -3,7 +3,6 @@ import { Status } from "@prisma/client";
 export default async function handler(req, res) {
   // const { description } = req.body;
 
-  console.log(req.method, "req.method");
   if (req.method === "POST") {
     const { description, status = "TODO" } = JSON.parse(req.body);
     const task = await prisma.task.create({
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
 
   // get all tasks
   if (req.method === "GET") {
-    console.log("hello get");
     const tasks = await prisma.task.findMany({});
     if (!tasks) {
       return res.status(404).json({ message: "no task found" });
@@ -32,16 +30,30 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    const { id } = req.params;
+    const { id } = req.query;
     const task = await prisma.task.delete({
       where: {
-        id,
+        id: parseInt(id),
       },
     });
     if (!task) {
       return res.status(400).json({ message: "error" });
     }
     return res.status(200).json({ message: "success" });
+  }
+
+  if (req.method === "PATCH") {
+    const { id } = req.query;
+    const reqBody = JSON.parse(req.body);
+    const task = await prisma.task.update({
+      where: {
+        id: parseInt(id),
+      },
+      data: {
+        ...reqBody,
+      },
+    });
+    return res.status(200).json({ task });
   }
   res.status(200).json({ hello: "hello" });
 }
