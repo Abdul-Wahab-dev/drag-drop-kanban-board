@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,18 +13,29 @@ import EditIcon from "@mui/icons-material/Edit";
 export default function Home() {
   const [tasks, setTasks] = useState([]);
   const [updateTask, setUpdateTask] = useState({
-    name: "",
-    category: "",
-    id: "",
+    description: "",
+    status: "",
   });
   const [task, setTask] = useState({
-    name: "",
-    category: "TODO",
-    id: Date.now().toString(),
+    description: "",
+    status: "TODO",
   });
 
+  useEffect(() => {
+    async function fetchAllTasks() {
+      const res = await (
+        await fetch("http://localhost:3000/api/tasks", {
+          method: "GET",
+        })
+      ).json();
+
+      console.log(res.tasks);
+      setTasks([...res.tasks]);
+    }
+    fetchAllTasks();
+  }, []);
+
   const onDragStart = (e, id) => {
-    console.log(typeof id);
     e.dataTransfer.setData("id", id);
   };
   const onDragOver = (e) => {
@@ -35,7 +46,7 @@ export default function Home() {
 
     let tasked = tasks.map((ite) => {
       if (ite.id === id) {
-        ite.category = cate;
+        ite.status = cate;
       }
       return ite;
     });
@@ -43,40 +54,45 @@ export default function Home() {
     setTasks([...tasked]);
   };
 
-  const deleteTask = (id) => {
-    setTasks([...tasks.filter((ite) => ite.id !== id)]);
+  const deleteTask = async (id) => {
+    const res = await (
+      await fetch(`http://localhost:3000/api/tasks/${id}`, {
+        method: "DELETE",
+      })
+    ).json();
+    if (res) {
+      setTasks([...tasks.filter((ite) => ite.id !== id)]);
+    }
   };
   const updateTaskFunc = () => {
     setTasks([
       ...tasks.map((ite) => (ite.id === updateTask.id ? updateTask : ite)),
     ]);
     setUpdateTask({
-      name: "",
-      category: "",
-      id: "",
+      description: "",
+      status: "",
     });
   };
 
   const AddTask = async () => {
-    if (task.name.length > 0) {
-      const res = await fetch("http://localhost:3000/api/tasks", {
-        body: JSON.stringify({
-          description: task.name,
-        }),
-        method: "POST",
-      });
-      console.log(await res.json(), "res.json()");
-      setTasks([...tasks, task]);
-      setTask({ name: "", category: "TODO", id: Date.now().toString() });
+    if (task.description.length > 0) {
+      const res = await (
+        await fetch("http://localhost:3000/api/tasks", {
+          body: JSON.stringify({
+            description: task.description,
+          }),
+          method: "POST",
+        })
+      ).json();
+      setTasks([...tasks, res.task]);
+      setTask({ description: "", status: "TODO" });
     }
   };
 
   const handleUpdateChange = (e) => {
-    console.log("handleUpdateChange");
-    console.log(e.target.value);
     setUpdateTask({
       ...updateTask,
-      name: e.target.value,
+      description: e.target.value,
     });
     // const updated = tasks
   };
@@ -97,9 +113,9 @@ export default function Home() {
       >
         <TextField
           placeholder="Task"
-          value={task.name}
+          value={task.description}
           variant="standard"
-          onChange={(e) => setTask({ ...task, name: e.target.value })}
+          onChange={(e) => setTask({ ...task, description: e.target.value })}
         />
         <Button size="small" variant="contained" onClick={() => AddTask()}>
           Add Task
@@ -136,7 +152,7 @@ export default function Home() {
             <Typography variant="p">{item}</Typography>
             {tasks.length > 0
               ? tasks
-                  .filter((it) => it.category === item)
+                  .filter((it) => it.status === item)
                   .map((it) => (
                     <Box
                       draggable={true}
@@ -160,7 +176,7 @@ export default function Home() {
                           <Box sx={{ flex: "4" }}>
                             <TextField
                               placeholder="Task"
-                              value={updateTask.name}
+                              value={updateTask.description}
                               variant="standard"
                               onChange={(e) => handleUpdateChange(e)}
                             />
@@ -178,7 +194,7 @@ export default function Home() {
                         </>
                       ) : (
                         <>
-                          <Box sx={{ flex: "3" }}>{it.name}</Box>
+                          <Box sx={{ flex: "3" }}>{it.description}</Box>
                           <Box sx={{ flex: "1" }}>
                             <Stack direction="row">
                               <IconButton

@@ -12,4 +12,12 @@ datasource db {
 model Task {
   id            Int           @id @default(autoincrement())
   description   String 
+  status        Status        @default(TODO)
+}
+
+enum Status {
+  BACKLOG
+  TODO
+  ONGOING
+  DONE
 }
